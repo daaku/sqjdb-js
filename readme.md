@@ -1,0 +1,3 @@
+# sqjdb
+
+SQLite JSON Database.
