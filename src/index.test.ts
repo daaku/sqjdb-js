@@ -23,7 +23,7 @@ test('crud', async () => {
   // update document
   // delete document
 
-  const createTable = (name: string): string =>
+  const qCreateTable = (name: string): string =>
     `create table if not exists ${name} (data text)`
 
   const exprToName = (expr: string): string =>
@@ -38,7 +38,7 @@ test('crud', async () => {
     name?: string
     unique?: boolean
   }
-  const createIndex = (o: CreateIndex): string => {
+  const qCreateIndex = (o: CreateIndex): string => {
     return [
       'create ',
       o.unique ? 'unique ' : '',
@@ -77,8 +77,8 @@ test('crud', async () => {
 
   const db = new Database(':memory:')
   const JEDI = 'jedi'
-  db.query(createTable(JEDI)).run()
-  db.query(createIndex({ table: JEDI, expr: pathFor('id') })).run()
+  db.query(qCreateTable(JEDI)).run()
+  db.query(qCreateIndex({ table: JEDI, expr: pathFor('id') })).run()
 
   const yoda: Jedi = { id: uuidv7(), name: 'yoda', age: 900 }
 
