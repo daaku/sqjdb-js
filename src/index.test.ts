@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 import { uuidv7 } from '@daaku/uuidv7'
+import memize from 'memize'
 
 const expectIndexOp = (db: Database, sql: string, ...args: any[]) => {
   const explain = db.query(sql)
@@ -23,14 +24,18 @@ test('crud', async () => {
   // update document
   // delete document
 
-  const qCreateTable = (name: string): string =>
-    `create table if not exists ${name} (data text)`
+  const qCreateTable = memize(
+    (name: string): string => `create table if not exists ${name} (data text)`,
+  )
 
-  const exprToName = (expr: string): string =>
-    expr.replace(/[^a-zA-Z]+/g, '_').replace(/_$/, '')
+  const exprToName = memize((expr: string): string =>
+    expr.replace(/[^a-zA-Z]+/g, '_').replace(/_$/, ''),
+  )
 
-  const pathFor = (path: string | string[]): string =>
-    `data->>'${Array.isArray(path) ? path.join('.') : path}'`
+  const pathFor = memize(
+    (path: string | string[]): string =>
+      `data->>'${Array.isArray(path) ? path.join('.') : path}'`,
+  )
 
   interface CreateIndex {
     table: string
@@ -38,7 +43,7 @@ test('crud', async () => {
     name?: string
     unique?: boolean
   }
-  const qCreateIndex = (o: CreateIndex): string => {
+  const qCreateIndex = memize((o: CreateIndex): string => {
     return [
       'create ',
       o.unique ? 'unique ' : '',
@@ -50,33 +55,19 @@ test('crud', async () => {
       o.expr,
       ')',
     ].join('')
-  }
+  })
 
-  const cachedQCache = new Map<string, string>()
-  const cachedQ = <Args extends any[]>(
-    cb: (...args: Args) => string,
-    ...args: Args
-  ): string => {
-    const keyS = cb.name + '_' + args.map(v => v.toString()).join('_')
-    let sql = cachedQCache.get(keyS)
-    if (!sql) {
-      sql = cb(...args)
-      cachedQCache.set(keyS, sql)
-    }
-    return sql
-  }
-
-  const qGetBy = (
-    table: string,
-    path: Parameters<typeof pathFor>[0] = 'id',
-  ): string => `select data from ${table} where ${pathFor(path)} = ?`
+  const qGetBy = memize(
+    (table: string, path: Parameters<typeof pathFor>[0] = 'id'): string =>
+      `select data from ${table} where ${pathFor(path)} = ?`,
+  )
 
   const getByID = <Doc = unknown>(
     db: Database,
     table: string,
     id: string,
   ): Doc | undefined => {
-    const sql = cachedQ(qGetBy, table)
+    const sql = qGetBy(table)
     const stmt = db.query<{ data: string }, string>(sql)
     const row = stmt.get(id)
     if (row) {
@@ -84,15 +75,16 @@ test('crud', async () => {
     }
   }
 
-  const qInsert = (table: string): string =>
-    `insert into ${table} (data) values (?)`
+  const qInsert = memize(
+    (table: string): string => `insert into ${table} (data) values (?)`,
+  )
 
   const insert = <T extends Object>(db: Database, table: string, doc: T): T => {
     // @ts-ignore muck with id
     if (!doc.id) {
       doc = { ...doc, id: uuidv7() }
     }
-    const sql = cachedQ(qInsert, table)
+    const sql = qInsert(table)
     const stmt = db.query<undefined, string>(sql)
     stmt.run(JSON.stringify(doc))
     return doc
