@@ -52,27 +52,47 @@ test('crud', async () => {
     ].join('')
   }
 
+  const cachedQCache = new Map<string, string>()
+  const cachedQ = (key: string[], cb: Function, ...args: any[]): string => {
+    const keyS = key.join('')
+    let sql = cachedQCache.get(keyS)
+    if (!sql) {
+      sql = cb(...args)
+      cachedQCache.set(keyS, sql)
+    }
+    return sql
+  }
+
   const qGetBy = (
     table: string,
     path: Parameters<typeof pathFor>[0] = 'id',
   ): string => `select data from ${table} where ${pathFor(path)} = ?`
 
-  const getByIDCache = new Map<string, string>()
   const getByID = <Doc = unknown>(
     db: Database,
     table: string,
     id: string,
   ): Doc | undefined => {
-    let sql = getByIDCache.get(table)
-    if (!sql) {
-      sql = qGetBy(table)
-      getByIDCache.set(table, sql)
-    }
+    const sql = cachedQ(['qGetBy', table], qGetBy, table)
     const stmt = db.query<{ data: string }, string>(sql)
-    const row = stmt.get(id.toString())
+    const row = stmt.get(id)
     if (row) {
       return JSON.parse(row.data)
     }
+  }
+
+  const qInsert = (table: string): string =>
+    `insert into ${table} (data) values (?)`
+
+  const insert = <T extends Object>(db: Database, table: string, doc: T): T => {
+    // @ts-ignore muck with id
+    if (!doc.id) {
+      doc = { ...doc, id: uuidv7() }
+    }
+    const sql = cachedQ(['qInsert', table], qInsert, table)
+    const stmt = db.query<undefined, string>(sql)
+    stmt.run(JSON.stringify(doc))
+    return doc
   }
 
   const db = new Database(':memory:')
@@ -81,11 +101,7 @@ test('crud', async () => {
   db.query(qCreateIndex({ table: JEDI, expr: pathFor('id') })).run()
 
   const yoda: Jedi = { id: uuidv7(), name: 'yoda', age: 900 }
-
-  const insert = db.query<undefined, string>(
-    'insert into jedi (data) values (?)',
-  )
-  expect(insert.run(JSON.stringify(yoda)))
+  insert(db, JEDI, yoda)
 
   const fetchYoda = getByID<Jedi>(db, JEDI, yoda.id)
   expect(fetchYoda).toEqual(yoda)
