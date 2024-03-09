@@ -13,8 +13,7 @@
     }
   },
   "scripts": {
-    "deploy": "npm publish --access=public",
-    "prepare": "tsc"
+    "deploy": "npm publish --access=public"
   },
   "keywords": ["sqlite", "database", "json", "document", "db"],
   "peerDependencies": {
@@ -22,5 +21,8 @@
   },
   "devDependencies": {
     "@types/bun": "^1.0.8"
+  },
+  "dependencies": {
+    "@daaku/uuidv7": "^0.2.0"
   }
 }

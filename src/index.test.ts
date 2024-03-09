@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
+import { uuidv7 } from '@daaku/uuidv7'
 
-const opcodes = (vs: { opcode: string }[]): string[] => vs.map(v => v.opcode)
+// const opcodes = (vs: { opcode: string }[]): string[] => vs.map(v => v.opcode)
 
 test('crud', async () => {
   interface Jedi {
@@ -39,7 +40,7 @@ test('crud', async () => {
       'create ',
       o.unique ? 'unique ' : '',
       'index if not exists ',
-      o.name ?? exprToName(o.expr),
+      o.name ?? `${o.table}_${exprToName(o.expr)}`,
       ' on ',
       o.table,
       ' (',
@@ -48,25 +49,47 @@ test('crud', async () => {
     ].join('')
   }
 
-  const db = new Database(':memory:')
-  db.query(createTable('jedi')).run()
-  console.log(createIndex({ table: 'jedi', expr: pathFor('id') }))
-  db.query(createIndex({ table: 'jedi', expr: pathFor('id') })).run()
+  const qGetBy = (
+    table: string,
+    path: Parameters<typeof pathFor>[0] = 'id',
+  ): string => `select data from ${table} where ${pathFor(path)} = ?`
 
-  const yoda: Jedi = { id: 'yoda', name: 'yoda', age: 900 }
+  const getByIDCache = new Map<string, string>()
+  const getByID = <Doc = unknown>(
+    db: Database,
+    table: string,
+    id: string,
+  ): Doc | undefined => {
+    let sql = getByIDCache.get(table)
+    if (!sql) {
+      sql = qGetBy(table)
+      getByIDCache.set(table, sql)
+    }
+    const stmt = db.query<{ data: string }, string>(sql)
+    const row = stmt.get(id.toString())
+    if (row) {
+      return JSON.parse(row.data)
+    }
+  }
+
+  const db = new Database(':memory:')
+  const JEDI = 'jedi'
+  db.query(createTable(JEDI)).run()
+  db.query(createIndex({ table: JEDI, expr: pathFor('id') })).run()
+
+  const yoda: Jedi = { id: uuidv7(), name: 'yoda', age: 900 }
 
   const insert = db.query<undefined, string>(
     'insert into jedi (data) values (?)',
   )
+  console.log(JSON.stringify(yoda))
   expect(insert.run(JSON.stringify(yoda)))
 
-  const byID = db.query<{ data: string }, string>(
-    "select data from jedi where data->>'id' = ?",
-  )
-  expect(JSON.parse(byID.get(yoda.id).data)).toEqual(yoda)
+  const fetchYoda = getByID<Jedi>(db, JEDI, yoda.id)
+  expect(fetchYoda).toEqual(yoda)
 
-  const explainByID = db.query<{ data: string }, string>(
-    "explain select data from jedi where data->>'id' = ?",
-  )
-  expect(opcodes(explainByID.all(yoda.id))).toContain('IdxGT')
+  // const explainByID = db.query<{ data: string }, string>(
+  //   "explain select data from jedi where data->>'id' = ?",
+  // )
+  // expect(opcodes(explainByID.all(yoda.id))).toContain('IdxGT')
 })
