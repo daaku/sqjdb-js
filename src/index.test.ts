@@ -2,7 +2,12 @@ import { expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 import { uuidv7 } from '@daaku/uuidv7'
 
-// const opcodes = (vs: { opcode: string }[]): string[] => vs.map(v => v.opcode)
+const opcodes = (vs: { opcode: string }[]): string[] => vs.map(v => v.opcode)
+
+const expectIndexOp = (db: Database, sql: string, ...args: any[]) => {
+  const explain = db.query(sql)
+  expect(opcodes(explain.all(...args))).toContain('IdxGT')
+}
 
 test('crud', async () => {
   interface Jedi {
@@ -82,14 +87,14 @@ test('crud', async () => {
   const insert = db.query<undefined, string>(
     'insert into jedi (data) values (?)',
   )
-  console.log(JSON.stringify(yoda))
   expect(insert.run(JSON.stringify(yoda)))
 
   const fetchYoda = getByID<Jedi>(db, JEDI, yoda.id)
   expect(fetchYoda).toEqual(yoda)
 
-  // const explainByID = db.query<{ data: string }, string>(
-  //   "explain select data from jedi where data->>'id' = ?",
-  // )
-  // expect(opcodes(explainByID.all(yoda.id))).toContain('IdxGT')
+  expectIndexOp(
+    db,
+    "explain select data from jedi where data->>'id' = ?",
+    yoda.id,
+  )
 })
