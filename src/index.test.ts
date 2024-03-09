@@ -54,11 +54,10 @@ test('crud', async () => {
 
   const cachedQCache = new Map<string, string>()
   const cachedQ = <Args extends any[]>(
-    key: string[],
     cb: (...args: Args) => string,
     ...args: Args
   ): string => {
-    const keyS = key.join('')
+    const keyS = cb.name + '_' + args.map(v => v.toString()).join('_')
     let sql = cachedQCache.get(keyS)
     if (!sql) {
       sql = cb(...args)
@@ -77,7 +76,7 @@ test('crud', async () => {
     table: string,
     id: string,
   ): Doc | undefined => {
-    const sql = cachedQ(['qGetBy', table], qGetBy, table)
+    const sql = cachedQ(qGetBy, table)
     const stmt = db.query<{ data: string }, string>(sql)
     const row = stmt.get(id)
     if (row) {
@@ -93,7 +92,7 @@ test('crud', async () => {
     if (!doc.id) {
       doc = { ...doc, id: uuidv7() }
     }
-    const sql = cachedQ(['qInsert', table], qInsert, table)
+    const sql = cachedQ(qInsert, table)
     const stmt = db.query<undefined, string>(sql)
     stmt.run(JSON.stringify(doc))
     return doc
