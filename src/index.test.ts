@@ -53,7 +53,11 @@ test('crud', async () => {
   }
 
   const cachedQCache = new Map<string, string>()
-  const cachedQ = (key: string[], cb: Function, ...args: any[]): string => {
+  const cachedQ = <Args extends any[]>(
+    key: string[],
+    cb: (...args: Args) => string,
+    ...args: Args
+  ): string => {
     const keyS = key.join('')
     let sql = cachedQCache.get(keyS)
     if (!sql) {
