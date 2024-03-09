@@ -10,7 +10,7 @@ const expectIndexOp = (db: Database, sql: string, ...args: any[]) => {
 
 test('crud', async () => {
   interface Jedi {
-    id: string
+    id?: string
     name: string
     age: number
   }
@@ -79,7 +79,11 @@ test('crud', async () => {
     (table: string): string => `insert into ${table} (data) values (?)`,
   )
 
-  const insert = <T extends Object>(db: Database, table: string, doc: T): T => {
+  const insert = <T extends Object>(
+    db: Database,
+    table: string,
+    doc: T,
+  ): T & { id: string } => {
     // @ts-ignore muck with id
     if (!doc.id) {
       doc = { ...doc, id: uuidv7() }
@@ -87,6 +91,7 @@ test('crud', async () => {
     const sql = qInsert(table)
     const stmt = db.query<undefined, string>(sql)
     stmt.run(JSON.stringify(doc))
+    // @ts-ignore muck with id
     return doc
   }
 
@@ -95,15 +100,17 @@ test('crud', async () => {
   db.query(qCreateTable(JEDI)).run()
   db.query(qCreateIndex({ table: JEDI, expr: pathFor('id') })).run()
 
-  const yoda: Jedi = { id: uuidv7(), name: 'yoda', age: 900 }
-  insert(db, JEDI, yoda)
+  const yodaToInsert: Jedi = { name: 'yoda', age: 900 }
+  const yodaAsInserted = insert(db, JEDI, yodaToInsert)
+  expect(yodaAsInserted).toMatchObject(yodaToInsert)
+  expect(yodaAsInserted.id).toBeDefined()
 
-  const fetchYoda = getByID<Jedi>(db, JEDI, yoda.id)
-  expect(fetchYoda).toEqual(yoda)
+  const yodaAsFetched = getByID<Jedi>(db, JEDI, yodaAsInserted.id)
+  expect(yodaAsFetched).toEqual(yodaAsInserted)
 
   expectIndexOp(
     db,
     "explain select data from jedi where data->>'id' = ?",
-    yoda.id,
+    yodaAsInserted.id,
   )
 })
