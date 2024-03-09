@@ -2,11 +2,9 @@ import { expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
 import { uuidv7 } from '@daaku/uuidv7'
 
-const opcodes = (vs: { opcode: string }[]): string[] => vs.map(v => v.opcode)
-
 const expectIndexOp = (db: Database, sql: string, ...args: any[]) => {
   const explain = db.query(sql)
-  expect(opcodes(explain.all(...args))).toContain('IdxGT')
+  expect(explain.all(...args).map((v: any) => v.opcode)).toContain('IdxGT')
 }
 
 test('crud', async () => {
