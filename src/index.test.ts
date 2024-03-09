@@ -59,7 +59,7 @@ test('crud', async () => {
 
   const qGetBy = memize(
     (table: string, path: Parameters<typeof pathFor>[0] = 'id'): string =>
-      `select data from ${table} where ${pathFor(path)} = ?`,
+      `select data from ${table} where ${pathFor(path)} = ? limit 1`,
   )
 
   const getByID = <Doc = unknown>(
