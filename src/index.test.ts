@@ -117,19 +117,22 @@ test('crud', async () => {
     }
   }
 
+  const all = <Doc = unknown>(
+    db: Database,
+    table: string,
+    ...sqls: SQLParts[]
+  ): Doc[] => {
+    const sql = [qSelect(table), ...sqls.map(v => v.parts.join('?'))].join(' ')
+    const args = sqls.flatMap(v => v.values)
+    const stmt = db.query<{ data: string }, any[]>(sql)
+    return stmt.all(...args).map(v => JSON.parse(v.data))
+  }
+
   const get = <Doc = unknown>(
     db: Database,
     table: string,
     ...sqls: SQLParts[]
-  ): Doc | undefined => {
-    const sql = [qSelect(table), ...sqls.map(v => v.parts.join('?'))].join(' ')
-    const args = sqls.flatMap(v => v.values)
-    const stmt = db.query<{ data: string }, any[]>(sql)
-    const row = stmt.get(...args)
-    if (row) {
-      return JSON.parse(row.data)
-    }
-  }
+  ): Doc | undefined => all<Doc>(db, table, ...sqls)[0]
 
   const db = new Database(':memory:')
   const JEDI = 'jedi'
@@ -175,12 +178,9 @@ test('crud', async () => {
   expect(byAgeAndGender(db, 42, 'male')?.name).toBe('luke')
   expect(byAgeAndGender(db, 42, 'female')?.name).toBe('leia')
 
-  // expect(
-  //   all<Jedi>(db, JEDI, sql`d->>'age' > ${42}`).map(j => j.name),
-  // ).toMatchSnapshot()
-  // expect(
-  //   all<Jedi>(db, JEDI, sql`$age > ${42}`).map(j => j.name),
-  // ).toMatchSnapshot()
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age > ${42}`).map(j => j.name),
+  ).toMatchSnapshot()
 
   expectIndexOp(
     db,
