@@ -104,7 +104,8 @@ test('crud', async () => {
     ].join(' ')
     const args = sqls.flatMap(v => v.values)
     const stmt = db.query<{ data: string }, any[]>(sql)
-    return stmt.all(...args).map(v => JSON.parse(v.data))
+    // @ts-ignore we expect [string][]
+    return stmt.values(...args).flatMap(JSON.parse)
   }
 
   const get = <Doc = unknown>(
