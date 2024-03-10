@@ -33,11 +33,6 @@ test('crud', async () => {
     expr.replace(/[^a-zA-Z]+/g, '_').replace(/_$/, ''),
   )
 
-  const pathFor = memize(
-    (path: string | string[]): string =>
-      `data->>'${Array.isArray(path) ? path.join('.') : path}'`,
-  )
-
   interface CreateIndex {
     table: string
     expr: string
@@ -57,26 +52,6 @@ test('crud', async () => {
       ')',
     ].join('')
   })
-
-  const qSelect = memize((table: string): string => `select data from ${table}`)
-
-  const qGetBy = memize(
-    (table: string, path: Parameters<typeof pathFor>[0] = 'id'): string =>
-      `select data from ${table} where ${pathFor(path)} = ? limit 1`,
-  )
-
-  const getByID = <Doc = unknown>(
-    db: Database,
-    table: string,
-    id: string,
-  ): Doc | undefined => {
-    const sql = qGetBy(table)
-    const stmt = db.query<{ data: string }, string>(sql)
-    const row = stmt.get(id)
-    if (row) {
-      return JSON.parse(row.data)
-    }
-  }
 
   const qInsert = memize(
     (table: string): string => `insert into ${table} (data) values (?)`,
@@ -122,7 +97,11 @@ test('crud', async () => {
     table: string,
     ...sqls: SQLParts[]
   ): Doc[] => {
-    const sql = [qSelect(table), ...sqls.map(v => v.parts.join('?'))].join(' ')
+    const sql = [
+      'select data from',
+      table,
+      ...sqls.map(v => v.parts.join('?')),
+    ].join(' ')
     const args = sqls.flatMap(v => v.values)
     const stmt = db.query<{ data: string }, any[]>(sql)
     return stmt.all(...args).map(v => JSON.parse(v.data))
@@ -134,10 +113,16 @@ test('crud', async () => {
     ...sqls: SQLParts[]
   ): Doc | undefined => all<Doc>(db, table, ...sqls)[0]
 
+  const getByID = <Doc = unknown>(
+    db: Database,
+    table: string,
+    id: string,
+  ): Doc | undefined => get<Doc>(db, table, sql`where $id = ${id} limit 1`)
+
   const db = new Database(':memory:')
   const JEDI = 'jedi'
   db.query(qCreateTable(JEDI)).run()
-  db.query(qCreateIndex({ table: JEDI, expr: pathFor('id') })).run()
+  db.query(qCreateIndex({ table: JEDI, expr: $toData('$id') })).run()
 
   const yodaToInsert: Jedi = { name: 'yoda', age: 900, gender: 'male' }
   const yodaAsInserted = insert(db, JEDI, yodaToInsert)
