@@ -13,6 +13,7 @@ test('crud', async () => {
     id?: string
     name: string
     age: number
+    gender?: 'male' | 'female'
   }
 
   // create table
@@ -57,6 +58,8 @@ test('crud', async () => {
     ].join('')
   })
 
+  const qSelect = memize((table: string): string => `select data from ${table}`)
+
   const qGetBy = memize(
     (table: string, path: Parameters<typeof pathFor>[0] = 'id'): string =>
       `select data from ${table} where ${pathFor(path)} = ? limit 1`,
@@ -95,18 +98,81 @@ test('crud', async () => {
     return doc
   }
 
+  const $toData = memize((s: string): string =>
+    s.replace(/\$([A-Za-z_\.]+)/g, `data->>'$1'`),
+  )
+
+  const $arrayToData = memize((vs: readonly string[]): string[] =>
+    vs.map($toData),
+  )
+
+  interface SQLParts {
+    parts: readonly string[]
+    values: any[]
+  }
+  const sql = (strings: TemplateStringsArray, ...values: any[]): SQLParts => {
+    return {
+      parts: $arrayToData(strings),
+      values: values,
+    }
+  }
+
+  const get = <Doc = unknown>(
+    db: Database,
+    table: string,
+    ...sqls: SQLParts[]
+  ): Doc | undefined => {
+    const sql = [qSelect(table), ...sqls.map(v => v.parts.join('?'))].join(' ')
+    console.log(sql)
+    const args = sqls.flatMap(v => v.values)
+    const stmt = db.query<{ data: string }, any[]>(sql)
+    const row = stmt.get(...args)
+    if (row) {
+      return JSON.parse(row.data)
+    }
+  }
+
   const db = new Database(':memory:')
   const JEDI = 'jedi'
   db.query(qCreateTable(JEDI)).run()
   db.query(qCreateIndex({ table: JEDI, expr: pathFor('id') })).run()
 
-  const yodaToInsert: Jedi = { name: 'yoda', age: 900 }
+  const yodaToInsert: Jedi = { name: 'yoda', age: 900, gender: 'male' }
   const yodaAsInserted = insert(db, JEDI, yodaToInsert)
   expect(yodaAsInserted).toMatchObject(yodaToInsert)
   expect(yodaAsInserted.id).toBeDefined()
 
   const yodaAsFetched = getByID<Jedi>(db, JEDI, yodaAsInserted.id)
   expect(yodaAsFetched).toEqual(yodaAsInserted)
+
+  insert<Jedi>(db, JEDI, { name: 'luke', age: 42, gender: 'male' })
+  insert<Jedi>(db, JEDI, { name: 'leia', age: 42, gender: 'female' })
+  insert<Jedi>(db, JEDI, { name: 'grogu', age: 50, gender: 'male' })
+  insert<Jedi>(db, JEDI, { name: 'rey', age: 32, gender: 'female' })
+
+  expect($toData('$id')).toBe(`data->>'id'`)
+  expect($toData('$id = 42')).toBe(`data->>'id' = 42`)
+  expect($toData('$phone.home = 42')).toBe(`data->>'phone.home' = 42`)
+  expect($toData('$phone_home = 42')).toBe(`data->>'phone_home' = 42`)
+  expect($toData('$name = "foo" and $age = 42')).toBe(
+    `data->>'name' = "foo" and data->>'age' = 42`,
+  )
+
+  expect(
+    sql`$name = ${yodaAsInserted.name} and $age >= ${yodaAsInserted.age}`,
+  ).toMatchSnapshot()
+
+  expect(get<Jedi>(db, JEDI, sql`where $id = ${yodaAsInserted.id}`)?.name).toBe(
+    yodaAsInserted.name,
+  )
+  expect(get<Jedi>(db, JEDI, sql`where $age = 50`)?.name).toBe('grogu')
+
+  // expect(
+  //   all<Jedi>(db, JEDI, sql`d->>'age' > ${42}`).map(j => j.name),
+  // ).toMatchSnapshot()
+  // expect(
+  //   all<Jedi>(db, JEDI, sql`$age > ${42}`).map(j => j.name),
+  // ).toMatchSnapshot()
 
   expectIndexOp(
     db,

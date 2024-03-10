@@ -45,3 +45,17 @@ exports[`array of function literals 1`] = `
   10,
 ]
 `;
+
+exports[`crud 1`] = `
+{
+  "parts": [
+    "data->>'name' = ",
+    " and data->>'age' >= ",
+    "",
+  ],
+  "values": [
+    "yoda",
+    900,
+  ],
+}
+`;
