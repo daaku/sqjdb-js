@@ -111,13 +111,13 @@ test('crud', async () => {
     db: Database,
     table: string,
     ...sqls: SQLParts[]
-  ): Doc | undefined => all<Doc>(db, table, ...sqls)[0]
+  ): Doc | undefined => all<Doc>(db, table, ...sqls, sql`limit 1`)[0]
 
   const getByID = <Doc = unknown>(
     db: Database,
     table: string,
     id: string,
-  ): Doc | undefined => get<Doc>(db, table, sql`where $id = ${id} limit 1`)
+  ): Doc | undefined => get<Doc>(db, table, sql`where $id = ${id}`)
 
   const db = new Database(':memory:')
   const JEDI = 'jedi'
