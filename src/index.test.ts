@@ -123,7 +123,6 @@ test('crud', async () => {
     ...sqls: SQLParts[]
   ): Doc | undefined => {
     const sql = [qSelect(table), ...sqls.map(v => v.parts.join('?'))].join(' ')
-    console.log(sql)
     const args = sqls.flatMap(v => v.values)
     const stmt = db.query<{ data: string }, any[]>(sql)
     const row = stmt.get(...args)
@@ -166,6 +165,15 @@ test('crud', async () => {
     yodaAsInserted.name,
   )
   expect(get<Jedi>(db, JEDI, sql`where $age = 50`)?.name).toBe('grogu')
+
+  const byAgeAndGender = (
+    db: Database,
+    age: number,
+    gender: 'male' | 'female',
+  ): Jedi | undefined =>
+    get<Jedi>(db, JEDI, sql`where $age = ${age} and $gender = ${gender}`)
+  expect(byAgeAndGender(db, 42, 'male')?.name).toBe('luke')
+  expect(byAgeAndGender(db, 42, 'female')?.name).toBe('leia')
 
   // expect(
   //   all<Jedi>(db, JEDI, sql`d->>'age' > ${42}`).map(j => j.name),
