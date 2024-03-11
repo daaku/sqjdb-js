@@ -86,7 +86,7 @@ export const all = <Doc = unknown>(
   ...sqls: SQLParts[]
 ): Doc[] => {
   const [query, args] = queryArgs('select data from', table, ...sqls)
-  const stmt = db.query<{ data: string }, any[]>(query)
+  const stmt = db.query(query)
   // @ts-expect-error we expect [string][]
   return stmt.values(...args).flatMap(JSON.parse)
 }
