@@ -164,7 +164,7 @@ test('custom update age + 1', () => {
   const [query, args] = queryArgs(
     'update',
     JEDI,
-    sql`set data = json_replace(data, '$.age', $age + 1)`,
+    sql`set data = jsonb_replace(data, '$.age', $age + 1)`,
   )
   db.query(query).run(...args)
   expect(

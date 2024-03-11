@@ -3,7 +3,7 @@ import { uuidv7 } from '@daaku/uuidv7'
 import memize from 'memize'
 
 export const qCreateTable = memize(
-  (name: string): string => `create table if not exists ${name} (data text)`,
+  (name: string): string => `create table if not exists ${name} (data blob)`,
 )
 
 const exprToName = memize((expr: string): string =>
@@ -31,7 +31,7 @@ export const qCreateIndex = memize((o: CreateIndex): string => {
 })
 
 const qInsert = memize(
-  (table: string): string => `insert into ${table} (data) values (?)`,
+  (table: string): string => `insert into ${table} (data) values (jsonb(?))`,
 )
 
 export const insert = <T extends Object>(
@@ -85,7 +85,7 @@ export const all = <Doc = unknown>(
   table: string,
   ...sqls: SQLParts[]
 ): Doc[] => {
-  const [query, args] = queryArgs('select data from', table, ...sqls)
+  const [query, args] = queryArgs('select json(data) from', table, ...sqls)
   const stmt = db.query(query)
   // @ts-expect-error we expect [string][]
   return stmt.values(...args).flatMap(JSON.parse)
@@ -117,7 +117,7 @@ export const patch = <T extends Object>(
   const [query, args] = queryArgs(
     'update',
     table,
-    sql`set data = json_patch(data, ${JSON.stringify(doc)})`,
+    sql`set data = jsonb_patch(data, ${JSON.stringify(doc)})`,
     ...sqls,
   )
   db.query(query).run(...args)
@@ -132,7 +132,7 @@ export const replace = <T extends Object>(
   const [query, args] = queryArgs(
     'update',
     table,
-    sql`set data = ${JSON.stringify(doc)}`,
+    sql`set data = jsonb(${JSON.stringify(doc)})`,
     ...sqls,
   )
   db.query(query).run(...args)
