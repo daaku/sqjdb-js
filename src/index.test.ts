@@ -21,6 +21,11 @@ const expectIndexOp = (db: Database, sql: string, ...args: any[]) => {
   expect(explain.all(...args).map((v: any) => v.opcode)).toContain('IdxGT')
 }
 
+const withoutID = <T extends Object & { id?: string }>(d: T): T => {
+  delete d.id
+  return d
+}
+
 test.each([
   '$id',
   '$id = 42',
@@ -143,27 +148,18 @@ test('patch', () => {
 test('replace', () => {
   const db = makeDB()
   expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => {
-      delete j.id
-      return j
-    }),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
   ).toMatchSnapshot()
   replace(db, JEDI, { name: 'dead', age: 42 }, sql`where $age = 42`)
   expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => {
-      delete j.id
-      return j
-    }),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
   ).toMatchSnapshot()
 })
 
 test('custom update age + 1', () => {
   const db = makeDB()
   expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => {
-      delete j.id
-      return j
-    }),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
   ).toMatchSnapshot()
   const [query, args] = queryArgs(
     'update',
@@ -172,9 +168,6 @@ test('custom update age + 1', () => {
   )
   db.query(query).run(...args)
   expect(
-    all<Jedi>(db, JEDI, sql`where $age = 43`).map(j => {
-      delete j.id
-      return j
-    }),
+    all<Jedi>(db, JEDI, sql`where $age = 43`).map(withoutID),
   ).toMatchSnapshot()
 })
