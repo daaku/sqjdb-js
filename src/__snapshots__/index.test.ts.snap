@@ -77,3 +77,31 @@ exports[`patch 2`] = `
   "dead",
 ]
 `;
+
+exports[`replace 1`] = `
+[
+  {
+    "age": 42,
+    "gender": "male",
+    "name": "luke",
+  },
+  {
+    "age": 42,
+    "gender": "female",
+    "name": "leia",
+  },
+]
+`;
+
+exports[`replace 2`] = `
+[
+  {
+    "age": 42,
+    "name": "dead",
+  },
+  {
+    "age": 42,
+    "name": "dead",
+  },
+]
+`;

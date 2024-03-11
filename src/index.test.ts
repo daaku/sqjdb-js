@@ -10,6 +10,7 @@ import {
   qCreateIndex,
   qCreateTable,
   remove,
+  replace,
   sql,
 } from './index.js'
 import { uuidv7 } from '@daaku/uuidv7'
@@ -75,6 +76,15 @@ test('insert returns object with id', () => {
   expect(inserted).toMatchObject(yoda)
 })
 
+test('index is used', () => {
+  const db = makeDB()
+  expectIndexOp(
+    db,
+    "explain select data from jedi where data->>'id' = ?",
+    YODA.id,
+  )
+})
+
 test('getByID', () => {
   const db = makeDB()
   const fetched = getByID<Jedi>(db, JEDI, YODA.id!)
@@ -128,11 +138,19 @@ test('patch', () => {
   ).toMatchSnapshot()
 })
 
-test('index is used', () => {
+test('replace', () => {
   const db = makeDB()
-  expectIndexOp(
-    db,
-    "explain select data from jedi where data->>'id' = ?",
-    YODA.id,
-  )
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => {
+      delete j.id
+      return j
+    }),
+  ).toMatchSnapshot()
+  replace(db, JEDI, { name: 'dead', age: 42 }, sql`where $age = 42`)
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => {
+      delete j.id
+      return j
+    }),
+  ).toMatchSnapshot()
 })

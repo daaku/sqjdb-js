@@ -122,3 +122,18 @@ export const patch = <T extends Object>(
   )
   db.query(query).run(...args)
 }
+
+export const replace = <T extends Object>(
+  db: Database,
+  table: string,
+  doc: T,
+  ...sqls: SQLParts[]
+) => {
+  const [query, args] = queryArgs(
+    'update',
+    table,
+    sql`set data = ${JSON.stringify(doc)}`,
+    ...sqls,
+  )
+  db.query(query).run(...args)
+}
