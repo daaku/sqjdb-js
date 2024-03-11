@@ -119,29 +119,29 @@ test('get helper', () => {
 test('all', () => {
   const db = makeDB()
   expect(
-    all<Jedi>(db, JEDI, sql`where $age > ${42}`).map(j => j.name),
+    all<Jedi>(db, JEDI, sql`where $age > ${42}`).map(withoutID),
   ).toMatchSnapshot()
 })
 
 test('remove', () => {
   const db = makeDB()
   expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => j.name),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
   ).toMatchSnapshot()
   remove(db, JEDI, sql`where $age = 42`)
   expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => j.name),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
   ).toMatchSnapshot()
 })
 
 test('patch', () => {
   const db = makeDB()
   expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => j.name),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
   ).toMatchSnapshot()
   patch(db, JEDI, { name: 'dead' }, sql`where $age = 42`)
   expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => j.name),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
   ).toMatchSnapshot()
 })
 

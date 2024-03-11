@@ -52,15 +52,31 @@ exports[`sql: limit 1`] = `
 
 exports[`all 1`] = `
 [
-  "yoda",
-  "grogu",
+  {
+    "age": 900,
+    "gender": "male",
+    "name": "yoda",
+  },
+  {
+    "age": 50,
+    "gender": "male",
+    "name": "grogu",
+  },
 ]
 `;
 
 exports[`remove 1`] = `
 [
-  "luke",
-  "leia",
+  {
+    "age": 42,
+    "gender": "male",
+    "name": "luke",
+  },
+  {
+    "age": 42,
+    "gender": "female",
+    "name": "leia",
+  },
 ]
 `;
 
@@ -68,15 +84,31 @@ exports[`remove 2`] = `[]`;
 
 exports[`patch 1`] = `
 [
-  "luke",
-  "leia",
+  {
+    "age": 42,
+    "gender": "male",
+    "name": "luke",
+  },
+  {
+    "age": 42,
+    "gender": "female",
+    "name": "leia",
+  },
 ]
 `;
 
 exports[`patch 2`] = `
 [
-  "dead",
-  "dead",
+  {
+    "age": 42,
+    "gender": "male",
+    "name": "dead",
+  },
+  {
+    "age": 42,
+    "gender": "female",
+    "name": "dead",
+  },
 ]
 `;
 
