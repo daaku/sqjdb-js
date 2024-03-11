@@ -48,7 +48,9 @@ test('crud', async () => {
   const db = new Database(':memory:')
   const JEDI = 'jedi'
   db.query(qCreateTable(JEDI)).run()
-  db.query(qCreateIndex({ table: JEDI, expr: $toData('$id') })).run()
+  db.query(
+    qCreateIndex({ table: JEDI, unique: true, expr: $toData('$id') }),
+  ).run()
 
   const yodaToInsert: Jedi = { name: 'yoda', age: 900, gender: 'male' }
   const yodaAsInserted = insert(db, JEDI, yodaToInsert)
