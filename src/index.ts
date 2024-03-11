@@ -39,14 +39,14 @@ export const insert = <T extends Object>(
   table: string,
   doc: T,
 ): T & { id: string } => {
-  // @ts-ignore muck with id
+  // @ts-expect-error muck with id
   if (!doc.id) {
     doc = { ...doc, id: uuidv7() }
   }
   const sql = qInsert(table)
   const stmt = db.query<undefined, string>(sql)
   stmt.run(JSON.stringify(doc))
-  // @ts-ignore muck with id
+  // @ts-expect-error muck with id
   return doc
 }
 
@@ -87,7 +87,7 @@ export const all = <Doc = unknown>(
 ): Doc[] => {
   const [query, args] = queryArgs('select data from', table, ...sqls)
   const stmt = db.query<{ data: string }, any[]>(query)
-  // @ts-ignore we expect [string][]
+  // @ts-expect-error we expect [string][]
   return stmt.values(...args).flatMap(JSON.parse)
 }
 
