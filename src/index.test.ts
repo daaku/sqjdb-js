@@ -6,11 +6,13 @@ import {
   get,
   getByID,
   insert,
+  patch,
   qCreateIndex,
   qCreateTable,
   remove,
   sql,
 } from './index.js'
+import { uuidv7 } from '@daaku/uuidv7'
 
 const expectIndexOp = (db: Database, sql: string, ...args: any[]) => {
   const explain = db.query(sql)
@@ -35,42 +37,58 @@ test.each([
   expect(sqlParts).toMatchSnapshot()
 })
 
-test('crud', async () => {
-  interface Jedi {
-    id?: string
-    name: string
-    age: number
-    gender?: 'male' | 'female'
-  }
+interface Jedi {
+  id?: string
+  name: string
+  age: number
+  gender?: 'male' | 'female'
+}
+const JEDI = 'jedi'
+const YODA: Jedi = Object.freeze({
+  id: uuidv7(),
+  name: 'yoda',
+  age: 900,
+  gender: 'male',
+})
 
-  // update document
-  // delete document
-
+const makeDB = (): Database => {
   const db = new Database(':memory:')
-  const JEDI = 'jedi'
   db.query(qCreateTable(JEDI)).run()
   db.query(
     qCreateIndex({ table: JEDI, unique: true, expr: $toData('$id') }),
   ).run()
 
-  const yodaToInsert: Jedi = { name: 'yoda', age: 900, gender: 'male' }
-  const yodaAsInserted = insert(db, JEDI, yodaToInsert)
-  expect(yodaAsInserted).toMatchObject(yodaToInsert)
-  expect(yodaAsInserted.id).toBeDefined()
-
-  const yodaAsFetched = getByID<Jedi>(db, JEDI, yodaAsInserted.id)
-  expect(yodaAsFetched).toEqual(yodaAsInserted)
-
+  insert<Jedi>(db, JEDI, YODA)
   insert<Jedi>(db, JEDI, { name: 'luke', age: 42, gender: 'male' })
   insert<Jedi>(db, JEDI, { name: 'leia', age: 42, gender: 'female' })
   insert<Jedi>(db, JEDI, { name: 'grogu', age: 50, gender: 'male' })
   insert<Jedi>(db, JEDI, { name: 'rey', age: 32, gender: 'female' })
 
-  expect(get<Jedi>(db, JEDI, sql`where $id = ${yodaAsInserted.id}`)?.name).toBe(
-    yodaAsInserted.name,
-  )
-  expect(get<Jedi>(db, JEDI, sql`where $age = 50`)?.name).toBe('grogu')
+  return db
+}
 
+test('insert returns object with id', () => {
+  const db = makeDB()
+  const yoda: Jedi = { name: 'yoda', age: 900 }
+  const inserted = insert(db, JEDI, yoda)
+  expect(inserted.id).toBeDefined()
+  expect(inserted).toMatchObject(yoda)
+})
+
+test('getByID', () => {
+  const db = makeDB()
+  const fetched = getByID<Jedi>(db, JEDI, YODA.id!)
+  expect(fetched).toEqual(YODA)
+})
+
+test('get', () => {
+  const db = makeDB()
+  expect(get<Jedi>(db, JEDI, sql`where $id = ${YODA.id}`)?.name).toBe(YODA.name)
+  expect(get<Jedi>(db, JEDI, sql`where $age = 50`)?.name).toBe('grogu')
+})
+
+test('get helper', () => {
+  const db = makeDB()
   const byAgeAndGender = (
     db: Database,
     age: number,
@@ -79,22 +97,42 @@ test('crud', async () => {
     get<Jedi>(db, JEDI, sql`where $age = ${age} and $gender = ${gender}`)
   expect(byAgeAndGender(db, 42, 'male')?.name).toBe('luke')
   expect(byAgeAndGender(db, 42, 'female')?.name).toBe('leia')
+})
 
+test('all', () => {
+  const db = makeDB()
   expect(
     all<Jedi>(db, JEDI, sql`where $age > ${42}`).map(j => j.name),
   ).toMatchSnapshot()
+})
 
-  expectIndexOp(
-    db,
-    "explain select data from jedi where data->>'id' = ?",
-    yodaAsInserted.id,
-  )
-
+test('remove', () => {
+  const db = makeDB()
   expect(
-    all<Jedi>(db, JEDI, sql`where $age ==42`).map(j => j.name),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => j.name),
   ).toMatchSnapshot()
   remove(db, JEDI, sql`where $age = 42`)
   expect(
-    all<Jedi>(db, JEDI, sql`where $age ==42`).map(j => j.name),
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => j.name),
   ).toMatchSnapshot()
+})
+
+test('patch', () => {
+  const db = makeDB()
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => j.name),
+  ).toMatchSnapshot()
+  patch(db, JEDI, { name: 'dead' }, sql`where $age = 42`)
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => j.name),
+  ).toMatchSnapshot()
+})
+
+test('index is used', () => {
+  const db = makeDB()
+  expectIndexOp(
+    db,
+    "explain select data from jedi where data->>'id' = ?",
+    YODA.id,
+  )
 })

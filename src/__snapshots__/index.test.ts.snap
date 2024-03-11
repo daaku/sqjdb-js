@@ -48,18 +48,32 @@ exports[`sql: limit 1`] = `
 }
 `;
 
-exports[`crud 1`] = `
+exports[`all 1`] = `
 [
   "yoda",
   "grogu",
 ]
 `;
 
-exports[`crud 2`] = `
+exports[`remove 1`] = `
 [
   "luke",
   "leia",
 ]
 `;
 
-exports[`crud 3`] = `[]`;
+exports[`remove 2`] = `[]`;
+
+exports[`patch 1`] = `
+[
+  "luke",
+  "leia",
+]
+`;
+
+exports[`patch 2`] = `
+[
+  "dead",
+  "dead",
+]
+`;

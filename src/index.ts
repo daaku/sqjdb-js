@@ -107,3 +107,15 @@ export const remove = (db: Database, table: string, ...sqls: SQLParts[]) => {
   const args = sqls.flatMap(v => v.values)
   db.query(sql).run(...args)
 }
+
+export const patch = <T extends Object>(
+  db: Database,
+  table: string,
+  doc: T,
+  ...sqls: SQLParts[]
+) => {
+  sqls = [sql`set data = json_patch(data, ${JSON.stringify(doc)})`, ...sqls]
+  const query = ['update', table, ...sqls.map(v => v.parts.join('?'))].join(' ')
+  const args = sqls.flatMap(v => v.values)
+  db.query(query).run(...args)
+}
