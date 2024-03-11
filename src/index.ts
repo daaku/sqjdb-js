@@ -72,18 +72,21 @@ export const sql = (
   }
 }
 
+export const queryArgs = (...sqls: (string | SQLParts)[]): [string, any[]] => {
+  const query = [
+    ...sqls.map(v => (typeof v === 'string' ? v : v.parts.join('?'))),
+  ].join(' ')
+  const args = sqls.flatMap(v => (typeof v === 'string' ? [] : v.values))
+  return [query, args]
+}
+
 export const all = <Doc = unknown>(
   db: Database,
   table: string,
   ...sqls: SQLParts[]
 ): Doc[] => {
-  const sql = [
-    'select data from',
-    table,
-    ...sqls.map(v => v.parts.join('?')),
-  ].join(' ')
-  const args = sqls.flatMap(v => v.values)
-  const stmt = db.query<{ data: string }, any[]>(sql)
+  const [query, args] = queryArgs('select data from', table, ...sqls)
+  const stmt = db.query<{ data: string }, any[]>(query)
   // @ts-ignore we expect [string][]
   return stmt.values(...args).flatMap(JSON.parse)
 }
@@ -101,11 +104,8 @@ export const getByID = <Doc = unknown>(
 ): Doc | undefined => get<Doc>(db, table, sql`where $id = ${id}`)
 
 export const remove = (db: Database, table: string, ...sqls: SQLParts[]) => {
-  const sql = ['delete from', table, ...sqls.map(v => v.parts.join('?'))].join(
-    ' ',
-  )
-  const args = sqls.flatMap(v => v.values)
-  db.query(sql).run(...args)
+  const [query, args] = queryArgs('delete from', table, ...sqls)
+  db.query(query).run(...args)
 }
 
 export const patch = <T extends Object>(
@@ -114,8 +114,11 @@ export const patch = <T extends Object>(
   doc: T,
   ...sqls: SQLParts[]
 ) => {
-  sqls = [sql`set data = json_patch(data, ${JSON.stringify(doc)})`, ...sqls]
-  const query = ['update', table, ...sqls.map(v => v.parts.join('?'))].join(' ')
-  const args = sqls.flatMap(v => v.values)
+  const [query, args] = queryArgs(
+    'update',
+    table,
+    sql`set data = json_patch(data, ${JSON.stringify(doc)})`,
+    ...sqls,
+  )
   db.query(query).run(...args)
 }
