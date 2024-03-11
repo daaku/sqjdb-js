@@ -1,66 +1,54 @@
 // Bun Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`empty array 1`] = `[]`;
+exports[`$toData: $id 1`] = `"data->>'id'"`;
 
-exports[`multiple empty arrays 1`] = `[]`;
+exports[`$toData: $id = 42 1`] = `"data->>'id' = 42"`;
 
-exports[`resolved promises 1`] = `
-[
-  1,
-  2,
-]
-`;
+exports[`$toData: $phone.home = 42 1`] = `"data->>'phone.home' = 42"`;
 
-exports[`two levels of async iterators with promises 1`] = `
-[
-  1,
-  2,
-  3,
-  4,
-]
-`;
+exports[`$toData: $phone_home = 42 1`] = `"data->>'phone_home' = 42"`;
 
-exports[`array of arrays, literals and promises 1`] = `
-[
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-]
-`;
+exports[`$toData: $name = "foo" and $age = 42 1`] = `"data->>'name' = "foo" and data->>'age' = 42"`;
 
-exports[`array of function literals 1`] = `
-[
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-]
-`;
-
-exports[`crud 1`] = `
+exports[`sql: where name 1`] = `
 {
   "parts": [
-    "data->>'name' = ",
-    " and data->>'age' >= ",
+    "where data->>'name' = ",
     "",
   ],
   "values": [
     "yoda",
-    900,
   ],
 }
 `;
 
-exports[`crud 2`] = `
+exports[`sql: where name and age 1`] = `
+{
+  "parts": [
+    "where data->>'name' = ",
+    " and data->>'age' = ",
+    "",
+  ],
+  "values": [
+    "yoda",
+    42,
+  ],
+}
+`;
+
+exports[`sql: limit 1`] = `
+{
+  "parts": [
+    "limit ",
+    "",
+  ],
+  "values": [
+    42,
+  ],
+}
+`;
+
+exports[`crud 1`] = `
 [
   "yoda",
   "grogu",

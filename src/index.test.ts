@@ -16,6 +16,24 @@ const expectIndexOp = (db: Database, sql: string, ...args: any[]) => {
   expect(explain.all(...args).map((v: any) => v.opcode)).toContain('IdxGT')
 }
 
+test.each([
+  '$id',
+  '$id = 42',
+  '$phone.home = 42',
+  '$phone_home = 42',
+  '$name = "foo" and $age = 42',
+])('$toData: %s', (v: string) => {
+  expect($toData(v)).toMatchSnapshot()
+})
+
+test.each([
+  ['where name', sql`where $name = ${'yoda'}`],
+  ['where name and age', sql`where $name = ${'yoda'} and $age = ${42}`],
+  ['limit', sql`limit ${42}`],
+])('sql: %s', (_, sqlParts) => {
+  expect(sqlParts).toMatchSnapshot()
+})
+
 test('crud', async () => {
   interface Jedi {
     id?: string
@@ -44,18 +62,6 @@ test('crud', async () => {
   insert<Jedi>(db, JEDI, { name: 'leia', age: 42, gender: 'female' })
   insert<Jedi>(db, JEDI, { name: 'grogu', age: 50, gender: 'male' })
   insert<Jedi>(db, JEDI, { name: 'rey', age: 32, gender: 'female' })
-
-  expect($toData('$id')).toBe(`data->>'id'`)
-  expect($toData('$id = 42')).toBe(`data->>'id' = 42`)
-  expect($toData('$phone.home = 42')).toBe(`data->>'phone.home' = 42`)
-  expect($toData('$phone_home = 42')).toBe(`data->>'phone_home' = 42`)
-  expect($toData('$name = "foo" and $age = 42')).toBe(
-    `data->>'name' = "foo" and data->>'age' = 42`,
-  )
-
-  expect(
-    sql`$name = ${yodaAsInserted.name} and $age >= ${yodaAsInserted.age}`,
-  ).toMatchSnapshot()
 
   expect(get<Jedi>(db, JEDI, sql`where $id = ${yodaAsInserted.id}`)?.name).toBe(
     yodaAsInserted.name,
