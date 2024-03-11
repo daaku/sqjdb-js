@@ -54,3 +54,12 @@ exports[`crud 1`] = `
   "grogu",
 ]
 `;
+
+exports[`crud 2`] = `
+[
+  "luke",
+  "leia",
+]
+`;
+
+exports[`crud 3`] = `[]`;

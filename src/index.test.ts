@@ -8,6 +8,7 @@ import {
   insert,
   qCreateIndex,
   qCreateTable,
+  remove,
   sql,
 } from './index.js'
 
@@ -88,4 +89,12 @@ test('crud', async () => {
     "explain select data from jedi where data->>'id' = ?",
     yodaAsInserted.id,
   )
+
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age ==42`).map(j => j.name),
+  ).toMatchSnapshot()
+  remove(db, JEDI, sql`where $age = 42`)
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age ==42`).map(j => j.name),
+  ).toMatchSnapshot()
 })

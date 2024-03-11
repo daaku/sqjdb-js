@@ -99,3 +99,11 @@ export const getByID = <Doc = unknown>(
   table: string,
   id: string,
 ): Doc | undefined => get<Doc>(db, table, sql`where $id = ${id}`)
+
+export const remove = (db: Database, table: string, ...sqls: SQLParts[]) => {
+  const sql = ['delete from', table, ...sqls.map(v => v.parts.join('?'))].join(
+    ' ',
+  )
+  const args = sqls.flatMap(v => v.values)
+  db.query(sql).run(...args)
+}
