@@ -12,6 +12,10 @@ exports[`$toData: $name = "foo" and $age = 42 1`] = `"data->>'name' = "foo" and 
 
 exports[`$toData: $.foo 1`] = `"$.foo"`;
 
+exports[`$toData: $a 1`] = `"data->>'a'"`;
+
+exports[`$toData: $. 1`] = `"$."`;
+
 exports[`sql: where name 1`] = `
 {
   "parts": [

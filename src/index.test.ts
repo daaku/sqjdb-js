@@ -33,6 +33,8 @@ test.each([
   '$phone_home = 42',
   '$name = "foo" and $age = 42',
   '$.foo',
+  '$a',
+  '$.',
 ])('$toData: %s', (v: string) => {
   expect($toData(v)).toMatchSnapshot()
 })
