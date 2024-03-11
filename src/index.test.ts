@@ -9,6 +9,7 @@ import {
   patch,
   qCreateIndex,
   qCreateTable,
+  queryArgs,
   remove,
   replace,
   sql,
@@ -26,6 +27,7 @@ test.each([
   '$phone.home = 42',
   '$phone_home = 42',
   '$name = "foo" and $age = 42',
+  '$.foo',
 ])('$toData: %s', (v: string) => {
   expect($toData(v)).toMatchSnapshot()
 })
@@ -149,6 +151,28 @@ test('replace', () => {
   replace(db, JEDI, { name: 'dead', age: 42 }, sql`where $age = 42`)
   expect(
     all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => {
+      delete j.id
+      return j
+    }),
+  ).toMatchSnapshot()
+})
+
+test('custom update age + 1', () => {
+  const db = makeDB()
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age = 42`).map(j => {
+      delete j.id
+      return j
+    }),
+  ).toMatchSnapshot()
+  const [query, args] = queryArgs(
+    'update',
+    JEDI,
+    sql`set data = json_replace(data, '$.age', $age + 1)`,
+  )
+  db.query(query).run(...args)
+  expect(
+    all<Jedi>(db, JEDI, sql`where $age = 43`).map(j => {
       delete j.id
       return j
     }),

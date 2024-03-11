@@ -51,7 +51,7 @@ export const insert = <T extends Object>(
 }
 
 export const $toData = memize((s: string): string =>
-  s.replace(/\$([A-Za-z_\.]+)/g, `data->>'$1'`),
+  s.replace(/\$([A-Za-z_][A-Za-z_\.]*)/g, `data->>'$1'`),
 )
 
 const $arrayToData = memize((vs: readonly string[]): string[] =>

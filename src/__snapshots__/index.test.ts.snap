@@ -10,6 +10,8 @@ exports[`$toData: $phone_home = 42 1`] = `"data->>'phone_home' = 42"`;
 
 exports[`$toData: $name = "foo" and $age = 42 1`] = `"data->>'name' = "foo" and data->>'age' = 42"`;
 
+exports[`$toData: $.foo 1`] = `"$.foo"`;
+
 exports[`sql: where name 1`] = `
 {
   "parts": [
@@ -102,6 +104,36 @@ exports[`replace 2`] = `
   {
     "age": 42,
     "name": "dead",
+  },
+]
+`;
+
+exports[`custom update age + 1 1`] = `
+[
+  {
+    "age": 42,
+    "gender": "male",
+    "name": "luke",
+  },
+  {
+    "age": 42,
+    "gender": "female",
+    "name": "leia",
+  },
+]
+`;
+
+exports[`custom update age + 1 2`] = `
+[
+  {
+    "age": 43,
+    "gender": "male",
+    "name": "luke",
+  },
+  {
+    "age": 43,
+    "gender": "female",
+    "name": "leia",
   },
 ]
 `;
