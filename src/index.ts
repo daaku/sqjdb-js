@@ -2,6 +2,9 @@ import { Database } from 'bun:sqlite'
 import { uuidv7 } from '@daaku/uuidv7'
 import memize from 'memize'
 
+/**
+ * SQL to create a table that stores JSON documents in a data column.
+ */
 export const qCreateTable = memize(
   (name: string): string => `create table if not exists ${name} (data blob)`,
 )
@@ -34,22 +37,6 @@ const qInsert = memize(
   (table: string): string => `insert into ${table} (data) values (jsonb(?))`,
 )
 
-export const insert = <T extends Object>(
-  db: Database,
-  table: string,
-  doc: T,
-): T & { id: string } => {
-  // @ts-expect-error muck with id
-  if (!doc.id) {
-    doc = { ...doc, id: uuidv7() }
-  }
-  const sql = qInsert(table)
-  const stmt = db.query<undefined, string>(sql)
-  stmt.run(JSON.stringify(doc))
-  // @ts-expect-error muck with id
-  return doc
-}
-
 export const $toData = memize((s: string): string =>
   s.replace(/\$([A-Za-z_][A-Za-z_\.]*)/g, `data->>'$1'`),
 )
@@ -80,60 +67,84 @@ export const queryArgs = (...sqls: (string | SQLParts)[]): [string, any[]] => {
   return [query, args]
 }
 
-export const all = <Doc = unknown>(
-  db: Database,
-  table: string,
-  ...sqls: SQLParts[]
-): Doc[] => {
-  const [query, args] = queryArgs('select json(data) from', table, ...sqls)
-  const stmt = db.query(query)
-  // @ts-expect-error we expect [string][]
-  return stmt.values(...args).flatMap(JSON.parse)
-}
+/**
+ * Table provides access to a SQLite table storing JSON documents.
+ */
+export class Table<D extends Object> {
+  #db: Database
+  #table: string
 
-export const get = <Doc = unknown>(
-  db: Database,
-  table: string,
-  ...sqls: SQLParts[]
-): Doc | undefined => all<Doc>(db, table, ...sqls, sql`limit 1`)[0]
+  constructor(db: Database, table: string) {
+    this.#db = db
+    this.#table = table
 
-export const getByID = <Doc = unknown>(
-  db: Database,
-  table: string,
-  id: string,
-): Doc | undefined => get<Doc>(db, table, sql`where $id = ${id}`)
+    db.query(qCreateTable(table)).run()
+    db.query(
+      qCreateIndex({ table: table, unique: true, expr: $toData('$id') }),
+    ).run()
+  }
 
-export const remove = (db: Database, table: string, ...sqls: SQLParts[]) => {
-  const [query, args] = queryArgs('delete from', table, ...sqls)
-  db.query(query).run(...args)
-}
+  get db(): Database {
+    return this.#db
+  }
 
-export const patch = <T extends Object>(
-  db: Database,
-  table: string,
-  doc: T,
-  ...sqls: SQLParts[]
-) => {
-  const [query, args] = queryArgs(
-    'update',
-    table,
-    sql`set data = jsonb_patch(data, ${JSON.stringify(doc)})`,
-    ...sqls,
-  )
-  db.query(query).run(...args)
-}
+  get table(): string {
+    return this.#table
+  }
 
-export const replace = <T extends Object>(
-  db: Database,
-  table: string,
-  doc: T,
-  ...sqls: SQLParts[]
-) => {
-  const [query, args] = queryArgs(
-    'update',
-    table,
-    sql`set data = jsonb(${JSON.stringify(doc)})`,
-    ...sqls,
-  )
-  db.query(query).run(...args)
+  insert(doc: D): D & { id: string } {
+    // @ts-expect-error muck with id
+    if (!doc.id) {
+      doc = { ...doc, id: uuidv7() }
+    }
+    const sql = qInsert(this.#table)
+    const stmt = this.#db.query<undefined, string>(sql)
+    stmt.run(JSON.stringify(doc))
+    // @ts-expect-error muck with id
+    return doc
+  }
+
+  all(...sqls: SQLParts[]): D[] {
+    const [query, args] = queryArgs(
+      'select json(data) from',
+      this.#table,
+      ...sqls,
+    )
+    const stmt = this.#db.query(query)
+    // @ts-expect-error we expect [string][]
+    return stmt.values(...args).flatMap(JSON.parse)
+  }
+
+  get(...sqls: SQLParts[]): D | undefined {
+    return this.all(...sqls, sql`limit 1`)[0]
+  }
+
+  getByID(id: string): D | undefined {
+    return this.get(sql`where $id = ${id}`)
+  }
+
+  delete(...sqls: SQLParts[]) {
+    const [query, args] = queryArgs('delete from', this.#table, ...sqls)
+    this.#db.query(query).run(...args)
+  }
+
+  patch(doc: Partial<D>, ...sqls: SQLParts[]) {
+    const [query, args] = queryArgs(
+      'update',
+      this.#table,
+      sql`set data = jsonb_patch(data, ${JSON.stringify(doc)})`,
+      ...sqls,
+    )
+    this.#db.query(query).run(...args)
+  }
+
+  replace(doc: D, ...sqls: SQLParts[]) {
+    const [query, args] = queryArgs(
+      'update',
+      this.#table,
+      sql`set data = jsonb(${JSON.stringify(doc)})`,
+      ...sqls,
+    )
+    this.#db.query(query).run(...args)
+  }
 }

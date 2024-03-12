@@ -1,19 +1,6 @@
 import { expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
-import {
-  $toData,
-  all,
-  get,
-  getByID,
-  insert,
-  patch,
-  qCreateIndex,
-  qCreateTable,
-  queryArgs,
-  remove,
-  replace,
-  sql,
-} from './index.js'
+import { $toData, Table, queryArgs, sql } from './index.js'
 import { uuidv7 } from '@daaku/uuidv7'
 
 const expectIndexOp = (db: Database, sql: string, ...args: any[]) => {
@@ -53,7 +40,6 @@ interface Jedi {
   age: number
   gender?: 'male' | 'female'
 }
-const JEDI = 'jedi'
 const YODA: Jedi = Object.freeze({
   id: uuidv7(),
   name: 'yoda',
@@ -61,115 +47,93 @@ const YODA: Jedi = Object.freeze({
   gender: 'male',
 })
 
-const makeDB = (): Database => {
-  const db = new Database(':memory:')
-  db.query(qCreateTable(JEDI)).run()
-  db.query(
-    qCreateIndex({ table: JEDI, unique: true, expr: $toData('$id') }),
-  ).run()
+const makeJedis = (): Table<Jedi> => {
+  const jedis = new Table<Jedi>(new Database(':memory:'), 'jedi')
 
-  insert<Jedi>(db, JEDI, YODA)
-  insert<Jedi>(db, JEDI, { name: 'luke', age: 42, gender: 'male' })
-  insert<Jedi>(db, JEDI, { name: 'leia', age: 42, gender: 'female' })
-  insert<Jedi>(db, JEDI, { name: 'grogu', age: 50, gender: 'male' })
-  insert<Jedi>(db, JEDI, { name: 'rey', age: 32, gender: 'female' })
+  jedis.insert(YODA)
+  jedis.insert({ name: 'luke', age: 42, gender: 'male' })
+  jedis.insert({ name: 'leia', age: 42, gender: 'female' })
+  jedis.insert({ name: 'grogu', age: 50, gender: 'male' })
+  jedis.insert({ name: 'rey', age: 32, gender: 'female' })
 
-  return db
+  return jedis
 }
 
 test('insert returns object with id', () => {
-  const db = makeDB()
-  const yoda: Jedi = { name: 'yoda', age: 900 }
-  const inserted = insert(db, JEDI, yoda)
+  const jedis = makeJedis()
+  const yoda = { name: 'yoda', age: 900 }
+  const inserted = jedis.insert(yoda)
   expect(inserted.id).toBeDefined()
   expect(inserted).toMatchObject(yoda)
 })
 
 test('index is used', () => {
-  const db = makeDB()
+  const jedis = makeJedis()
   expectIndexOp(
-    db,
+    jedis.db,
     "explain select data from jedi where data->>'id' = ?",
     YODA.id,
   )
 })
 
 test('getByID', () => {
-  const db = makeDB()
-  const fetched = getByID<Jedi>(db, JEDI, YODA.id!)
+  const jedis = makeJedis()
+  const fetched = jedis.getByID(YODA.id!)
   expect(fetched).toEqual(YODA)
 })
 
 test('get', () => {
-  const db = makeDB()
-  expect(get<Jedi>(db, JEDI, sql`where $id = ${YODA.id}`)?.name).toBe(YODA.name)
-  expect(get<Jedi>(db, JEDI, sql`where $age = 50`)?.name).toBe('grogu')
+  const jedis = makeJedis()
+  expect(jedis.get(sql`where $id = ${YODA.id}`)?.name).toBe(YODA.name)
+  expect(jedis.get(sql`where $age = 50`)?.name).toBe('grogu')
 })
 
 test('get helper', () => {
-  const db = makeDB()
+  const jedis = makeJedis()
   const byAgeAndGender = (
-    db: Database,
+    jedis: Table<Jedi>,
     age: number,
     gender: 'male' | 'female',
   ): Jedi | undefined =>
-    get<Jedi>(db, JEDI, sql`where $age = ${age} and $gender = ${gender}`)
-  expect(byAgeAndGender(db, 42, 'male')?.name).toBe('luke')
-  expect(byAgeAndGender(db, 42, 'female')?.name).toBe('leia')
+    jedis.get(sql`where $age = ${age} and $gender = ${gender}`)
+  expect(byAgeAndGender(jedis, 42, 'male')?.name).toBe('luke')
+  expect(byAgeAndGender(jedis, 42, 'female')?.name).toBe('leia')
 })
 
 test('all', () => {
-  const db = makeDB()
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age > ${42}`).map(withoutID),
-  ).toMatchSnapshot()
+  const jedis = makeJedis()
+  expect(jedis.all(sql`where $age > ${42}`).map(withoutID)).toMatchSnapshot()
 })
 
-test('remove', () => {
-  const db = makeDB()
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
-  ).toMatchSnapshot()
-  remove(db, JEDI, sql`where $age = 42`)
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
-  ).toMatchSnapshot()
+test('delete', () => {
+  const jedis = makeJedis()
+  expect(jedis.all(sql`where $age = 42`).map(withoutID)).toMatchSnapshot()
+  jedis.delete(sql`where $age = 42`)
+  expect(jedis.all(sql`where $age = 42`).map(withoutID)).toMatchSnapshot()
 })
 
 test('patch', () => {
-  const db = makeDB()
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
-  ).toMatchSnapshot()
-  patch(db, JEDI, { name: 'dead' }, sql`where $age = 42`)
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
-  ).toMatchSnapshot()
+  const jedis = makeJedis()
+  expect(jedis.all(sql`where $age = 42`).map(withoutID)).toMatchSnapshot()
+  jedis.patch({ name: 'dead' }, sql`where $age = 42`)
+  expect(jedis.all(sql`where $age = 42`).map(withoutID)).toMatchSnapshot()
 })
 
 test('replace', () => {
-  const db = makeDB()
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
-  ).toMatchSnapshot()
-  replace(db, JEDI, { name: 'dead', age: 42 }, sql`where $age = 42`)
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
-  ).toMatchSnapshot()
+  const jedis = makeJedis()
+  expect(jedis.all(sql`where $age = 42`).map(withoutID)).toMatchSnapshot()
+  jedis.replace({ name: 'dead', age: 42 }, sql`where $age = 42`)
+  expect(jedis.all(sql`where $age = 42`).map(withoutID)).toMatchSnapshot()
 })
 
 test('custom update age + 1', () => {
-  const db = makeDB()
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age = 42`).map(withoutID),
-  ).toMatchSnapshot()
+  const jedis = makeJedis()
+  expect(jedis.all(sql`where $age = 42`).map(withoutID)).toMatchSnapshot()
   const [query, args] = queryArgs(
     'update',
-    JEDI,
+    jedis.table,
     sql`set data = jsonb_replace(data, '$.age', $age + 1)`,
   )
-  db.query(query).run(...args)
-  expect(
-    all<Jedi>(db, JEDI, sql`where $age = 43`).map(withoutID),
-  ).toMatchSnapshot()
+  jedis.db.query(query).run(...args)
+  expect(jedis.all(sql`where $age = 43`).map(withoutID)).toMatchSnapshot()
 })

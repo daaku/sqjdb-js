@@ -69,7 +69,7 @@ exports[`all 1`] = `
 ]
 `;
 
-exports[`remove 1`] = `
+exports[`delete 1`] = `
 [
   {
     "age": 42,
@@ -84,7 +84,7 @@ exports[`remove 1`] = `
 ]
 `;
 
-exports[`remove 2`] = `[]`;
+exports[`delete 2`] = `[]`;
 
 exports[`patch 1`] = `
 [
