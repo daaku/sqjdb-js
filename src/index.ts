@@ -78,10 +78,8 @@ export class Table<D extends Object> {
     this.#db = db
     this.#table = table
 
-    db.query(qCreateTable(table)).run()
-    db.query(
-      qCreateIndex({ table: table, unique: true, expr: $toData('$id') }),
-    ).run()
+    db.run(qCreateTable(table))
+    db.run(qCreateIndex({ table: table, unique: true, expr: $toData('$id') }))
   }
 
   get db(): Database {
