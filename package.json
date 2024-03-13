@@ -1,13 +1,20 @@
 {
   "name": "@daaku/sqjdb",
   "author": "Naitik Shah <n@daaku.org>",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Bun SQLite JSON Database.",
   "repository": "git@github.com:daaku/sqjdb",
   "license": "MIT",
   "type": "module",
   "module": "./src/index.ts",
-  "keywords": ["bun", "sqlite", "database", "json", "document", "db"],
+  "keywords": [
+    "bun",
+    "sqlite",
+    "database",
+    "json",
+    "document",
+    "db"
+  ],
   "devDependencies": {
     "@types/bun": "^1.0.8"
   },
