@@ -1,3 +1,3 @@
 # sqjdb
 
-SQLite JSON Database.
+Bun SQLite JSON Database.

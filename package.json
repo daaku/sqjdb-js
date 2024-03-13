@@ -2,28 +2,17 @@
   "name": "@daaku/sqjdb",
   "author": "Naitik Shah <n@daaku.org>",
   "version": "0.1.0",
-  "description": "SQLite JSON Database.",
+  "description": "Bun SQLite JSON Database.",
   "repository": "git@github.com:daaku/sqjdb",
   "license": "MIT",
   "type": "module",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "scripts": {
-    "deploy": "npm publish --access=public"
-  },
-  "keywords": ["sqlite", "database", "json", "document", "db"],
-  "peerDependencies": {
-    "typescript": "^5.4.0"
-  },
+  "module": "./src/index.ts",
+  "keywords": ["bun", "sqlite", "database", "json", "document", "db"],
   "devDependencies": {
     "@types/bun": "^1.0.8"
   },
   "dependencies": {
-    "@daaku/uuidv7": "^0.2.0",
+    "@daaku/uuidv7": "^0.3.0",
     "memize": "^2.1.0"
   }
 }

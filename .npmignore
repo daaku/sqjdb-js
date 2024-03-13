@@ -1,6 +1,6 @@
-/.github
-/bun.lockb
 /bunfig.toml
-/dist/*test*
-/src
+/bun.lockb
+/.github
+/src/__snapshots__
+/src/*test*
 /tsconfig.json
