@@ -5,7 +5,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: oven-sh/setup-bun@v1
+      - uses: oven-sh/setup-bun@v2
       - uses: actions/checkout@v4
       - run: bun install
       - run: bun test
