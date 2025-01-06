@@ -1,7 +1,7 @@
 {
   "name": "@daaku/sqjdb",
   "author": "Naitik Shah <n@daaku.org>",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Bun SQLite JSON Database.",
   "repository": "git@github.com:daaku/sqjdb",
   "license": "MIT",
