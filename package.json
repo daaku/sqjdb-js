@@ -20,7 +20,7 @@
     "@types/bun": "^1.0.8"
   },
   "dependencies": {
-    "@daaku/uuidv7": "^0.3.0",
+    "@daaku/uuidv7": "^0.4.0",
     "memize": "^2.1.0"
   }
 }
